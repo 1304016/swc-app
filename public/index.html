@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="End-to-end encrypted messaging disguised as ordinary words. Send secrets anywhere.">
+  <meta name="theme-color" content="#0d0d1a">
+
+  <!-- Open Graph -->
+  <meta property="og:title"       content="Secret Word Cipher">
+  <meta property="og:description" content="Send encrypted messages disguised as ordinary words.">
+  <meta property="og:type"        content="website">
+
+  <title>Secret Word Cipher</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔐</text></svg>">
+</head>
+<body>
+
+<!-- ── Navbar ────────────────────────────────────────────────── -->
+<nav>
+  <div class="container nav-inner">
+    <span class="nav-brand" id="nav-logo"><span data-i18n="app_name">Secret Word Cipher</span></span>
+
+    <!-- Tabs + logout — shown when logged in -->
+    <div id="nav-auth-in" class="hidden" style="display:flex;align-items:center;gap:0.5rem">
+      <div class="nav-tabs">
+        <button class="tab-btn" data-tab="compose" data-i18n="nav_compose">Compose</button>
+        <button class="tab-btn" data-tab="decode"  data-i18n="nav_decode">Decode</button>
+        <button class="tab-btn" data-tab="account" data-i18n="nav_account">Account</button>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="nav-logout" data-i18n="nav_logout">Log Out</button>
+    </div>
+
+    <!-- Buttons — shown when logged out -->
+    <div class="nav-actions" id="nav-auth-out">
+      <button class="btn btn-ghost  btn-sm" id="btn-go-login"  data-i18n="nav_login">Log In</button>
+      <button class="btn btn-primary btn-sm" id="btn-go-signup" data-i18n="nav_signup">Sign Up</button>
+    </div>
+  </div>
+</nav>
+
+<main>
+
+<!-- ══════════════════════════════════════════════════════════════
+     LANDING
+════════════════════════════════════════════════════════════════ -->
+<div id="view-landing" class="view">
+  <section class="hero">
+    <div class="container">
+      <h1>Send secrets <span>in plain sight.</span></h1>
+      <p data-i18n="landing_hero_sub">Your message is encrypted into a string of ordinary words — share it anywhere.</p>
+      <div class="hero-actions">
+        <button class="btn btn-primary btn-lg" id="btn-go-signup" data-i18n="landing_get_started">Get Started — It's Free</button>
+        <button class="btn btn-outline btn-lg" id="btn-go-login"  data-i18n="nav_login">Log In</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="how-section">
+    <div class="container">
+      <h2 data-i18n="landing_how_title">How it works</h2>
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <h3 data-i18n="landing_step1_title">Sign Up</h3>
+          <p data-i18n="landing_step1_desc">Get a unique User ID and Secret Token. Keys are generated in your browser.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <h3 data-i18n="landing_step2_title">Compose</h3>
+          <p data-i18n="landing_step2_desc">Type your message and the recipient's User ID. Get an encrypted word-string.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <h3 data-i18n="landing_step3_title">Share</h3>
+          <p data-i18n="landing_step3_desc">Send the word-string anywhere — WhatsApp, email, a forum post.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">4</div>
+          <h3 data-i18n="landing_step4_title">Decode</h3>
+          <p data-i18n="landing_step4_desc">Paste a word-string. If it was encrypted for you, you'll see the message.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     SIGN UP
+════════════════════════════════════════════════════════════════ -->
+<div id="view-signup" class="view">
+  <div class="auth-page">
+    <div class="container">
+      <div class="card auth-card">
+        <h2 data-i18n="signup_title">Create Account</h2>
+        <p data-i18n="signup_subtitle">Your keys are generated in this browser. Nothing private ever reaches our servers.</p>
+
+        <span id="signup-status" class="status-msg"></span>
+
+        <!-- Step 1: Start button -->
+        <div id="signup-step1">
+          <button class="btn btn-primary btn-full btn-lg" id="btn-start-signup" data-i18n="signup_creating">
+            Generate My Keys & Create Account
+          </button>
+        </div>
+
+        <!-- Step 2: Show credentials -->
+        <div id="signup-step2" class="hidden">
+          <div style="margin-bottom:1.25rem">
+            <div class="signup-label" data-i18n="signup_your_id">Your User ID</div>
+            <div class="mono-display mono-lg" id="signup-display-id"></div>
+            <p style="font-size:0.82rem;margin-top:0.4rem" data-i18n="signup_id_hint">
+              Share this with people who want to send you messages.
+            </p>
+          </div>
+
+          <div style="margin-bottom:1.25rem">
+            <div class="signup-label" data-i18n="signup_secret_token">Your Secret Token</div>
+            <div class="mono-display" id="signup-display-token" style="font-size:0.88rem"></div>
+            <div class="token-warning" data-i18n="signup_token_warning">
+              ⚠ Save this now. It cannot be recovered if lost.
+            </div>
+          </div>
+
+          <div class="signup-actions">
+            <button class="btn btn-outline btn-full" id="btn-copy-token" data-i18n="signup_copy_token">Copy Token</button>
+            <button class="btn btn-ghost   btn-full" id="btn-download-key" data-i18n="signup_download_key">
+              ⬇ Download Private Key File
+            </button>
+            <p style="font-size:0.8rem;color:var(--text-muted);text-align:center" data-i18n="signup_key_hint">
+              Keep the key file safe — you'll need it if you clear browser data.
+            </p>
+            <button class="btn btn-primary btn-full btn-lg" id="btn-goto-app" data-i18n="signup_go_app">
+              Go to App →
+            </button>
+          </div>
+        </div>
+
+        <div class="auth-link-row">
+          <a href="#" id="link-from-signup" data-i18n="login_no_account">No account yet? Sign Up</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     LOG IN
+════════════════════════════════════════════════════════════════ -->
+<div id="view-login" class="view">
+  <div class="auth-page">
+    <div class="container">
+      <div class="card auth-card">
+        <h2 data-i18n="login_title">Log In</h2>
+        <br>
+        <form id="form-login" novalidate>
+          <div class="form-group">
+            <label for="login-userid" data-i18n="login_user_id_label">User ID</label>
+            <input type="text" id="login-userid" inputmode="numeric" pattern="[0-9]*"
+              data-i18n-placeholder="login_user_id_placeholder" autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label for="login-token" data-i18n="login_token_label">Secret Token</label>
+            <textarea id="login-token" rows="3"
+              data-i18n-placeholder="login_token_placeholder" autocomplete="current-password"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="login-keyfile" data-i18n="login_key_file_label">Private Key File (optional)</label>
+            <input type="file" id="login-keyfile" accept=".txt">
+          </div>
+
+          <span id="login-status" class="status-msg"></span>
+
+          <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top:0.5rem" data-i18n="login_submit">
+            Log In
+          </button>
+        </form>
+
+        <div class="auth-link-row">
+          <a href="#" id="link-from-login" data-i18n="signup_title">Create Account</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     APP (Compose / Decode / Account tabs)
+════════════════════════════════════════════════════════════════ -->
+<div id="view-app" class="view">
+  <div class="container app-page">
+
+    <!-- ── Compose ──────────────────────────────────────────── -->
+    <div id="tab-compose" class="tab-panel">
+      <h2 data-i18n="compose_title">Compose Encrypted Message</h2>
+
+      <div class="card">
+        <form id="form-compose" novalidate>
+          <div class="form-group">
+            <label for="compose-recipient" data-i18n="compose_recipient_label">Recipient User ID</label>
+            <input type="text" id="compose-recipient" inputmode="numeric"
+              data-i18n-placeholder="compose_recipient_placeholder" autocomplete="off">
+          </div>
+
+          <div class="form-group">
+            <label for="compose-message" data-i18n="compose_message_label">Message</label>
+            <textarea id="compose-message" rows="5"
+              data-i18n-placeholder="compose_message_placeholder"></textarea>
+            <div class="char-count"><span id="compose-char-count">0 characters</span></div>
+          </div>
+
+          <span id="compose-status" class="status-msg"></span>
+
+          <button type="submit" class="btn btn-primary btn-full" data-i18n="compose_encrypt_btn">
+            Encrypt →
+          </button>
+        </form>
+
+        <!-- Result -->
+        <div id="compose-result-section" class="result-section hidden">
+          <div class="output-label" data-i18n="compose_result_label">Encrypted Word-String (copy & send this)</div>
+          <textarea class="output-area" id="compose-output" readonly rows="6"></textarea>
+          <div class="result-actions">
+            <button class="btn btn-primary" id="btn-copy-cipher" data-i18n="compose_copy_btn">Copy to Clipboard</button>
+            <button class="btn btn-ghost"   id="btn-compose-new" data-i18n="compose_new_btn">New Message</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Decode ───────────────────────────────────────────── -->
+    <div id="tab-decode" class="tab-panel">
+      <h2 data-i18n="decode_title">Decode Message</h2>
+
+      <!-- No private key warning -->
+      <div id="decode-no-key-banner" class="no-key-banner hidden">
+        <div>
+          <p data-i18n="decode_no_key">No private key available. Please upload your key file below.</p>
+          <div style="margin-top:0.75rem;display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap">
+            <label for="decode-keyfile-input" class="btn btn-outline btn-sm" style="cursor:pointer" data-i18n="decode_upload_key">
+              Upload Private Key File
+            </label>
+            <input type="file" id="decode-keyfile-input" accept=".txt" style="display:none">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <form id="form-decode" novalidate>
+          <div class="form-group">
+            <label for="decode-input" data-i18n="decode_paste_label">Paste Encrypted Word-String</label>
+            <textarea id="decode-input" rows="6"
+              data-i18n-placeholder="decode_paste_placeholder"></textarea>
+          </div>
+
+          <span id="decode-status" class="status-msg"></span>
+
+          <button type="submit" class="btn btn-primary btn-full" data-i18n="decode_submit">
+            Decode →
+          </button>
+        </form>
+
+        <!-- Result -->
+        <div id="decode-result-section" class="result-section hidden">
+          <div class="output-label" data-i18n="decode_result_label">Decrypted Message</div>
+          <div class="mono-display" id="decode-output" style="color:var(--success);min-height:60px"></div>
+          <div class="result-actions">
+            <button class="btn btn-ghost" id="btn-decode-new" data-i18n="decode_new_btn">Decode Another</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Account ──────────────────────────────────────────── -->
+    <div id="tab-account" class="tab-panel">
+      <h2 data-i18n="account_title">Account</h2>
+
+      <div class="card">
+        <div class="account-info">
+          <div class="info-row">
+            <div class="info-label" data-i18n="account_your_id">Your User ID</div>
+            <div class="info-val mono-display mono-lg" id="account-user-id"></div>
+          </div>
+          <div class="info-row">
+            <div class="info-label" data-i18n="account_public_key">Public Key</div>
+            <div class="info-val" id="account-pub-key" style="font-size:0.78rem;word-break:break-all;font-family:monospace;color:var(--text-muted)"></div>
+          </div>
+        </div>
+
+        <button class="btn btn-outline" id="btn-download-key-account" data-i18n="account_download_key">
+          ⬇ Download Private Key Backup
+        </button>
+
+        <span id="account-status" class="status-msg"></span>
+      </div>
+
+      <!-- Danger zone -->
+      <div class="danger-zone">
+        <h3 data-i18n="account_delete_title">Delete Account</h3>
+        <p data-i18n="account_delete_desc">
+          Permanently delete your account and all associated data. This cannot be undone.
+        </p>
+        <button class="btn btn-danger btn-sm" id="btn-show-delete-confirm" data-i18n="account_delete_btn">
+          Delete My Account
+        </button>
+
+        <div id="delete-confirm-section" class="hidden" style="margin-top:1.25rem">
+          <div class="form-group">
+            <label for="delete-token-input" data-i18n="account_delete_confirm_label">
+              Enter your Secret Token to confirm
+            </label>
+            <textarea id="delete-token-input" rows="2"></textarea>
+          </div>
+          <div style="display:flex;gap:0.75rem;flex-wrap:wrap">
+            <button class="btn btn-danger" id="btn-confirm-delete" data-i18n="account_delete_confirm_btn">
+              Confirm Delete
+            </button>
+            <button class="btn btn-ghost" id="btn-cancel-delete" data-i18n="account_delete_cancel">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /app-page -->
+</div><!-- /view-app -->
+
+</main>
+
+<!-- ── Footer ─────────────────────────────────────────────────── -->
+<footer>
+  <div class="container footer-inner">
+    <div class="footer-links">
+      <a href="/privacy.html" data-i18n="footer_privacy">Privacy Policy</a>
+      <a href="/terms.html"   data-i18n="footer_terms">Terms of Service</a>
+    </div>
+    <div class="lang-switcher" id="lang-switcher"></div>
+  </div>
+</footer>
+
+<!-- ── Scripts ────────────────────────────────────────────────── -->
+<!-- libsodium -->
+<script src="https://cdn.jsdelivr.net/npm/libsodium-wrappers@0.7.15/dist/modules/libsodium-wrappers.js"></script>
+<!-- Supabase JS v2 -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
+<!-- App scripts (order matters) -->
+<script src="/js/config.js"></script>
+<script src="/js/bip39-wordlist.js"></script>
+<script src="/js/i18n.js"></script>
+<script src="/js/crypto.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/app.js"></script>
+
+</body>
+</html>

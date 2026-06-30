@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — Secret Word Cipher</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔐</text></svg>">
+</head>
+<body>
+
+<nav>
+  <div class="container nav-inner">
+    <a class="nav-brand" href="/">🔐 Secret Word Cipher</a>
+    <div class="nav-actions">
+      <a href="/" class="btn btn-ghost btn-sm">← Back to App</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div class="container">
+    <div class="static-page">
+      <h1>Privacy Policy</h1>
+      <p class="updated">Last updated: July 1, 2026 · <em>This is a template — review with legal counsel before publishing.</em></p>
+
+      <h2>1. Overview</h2>
+      <p>Secret Word Cipher ("we", "our", "the Service") is committed to protecting your privacy. This policy explains what data we collect, how we use it, and your rights regarding that data.</p>
+
+      <h2>2. Data We Collect</h2>
+      <ul>
+        <li><strong>User ID</strong> — a random numeric identifier you receive at signup.</li>
+        <li><strong>Public key</strong> — the public half of your cryptographic key pair, stored so others can encrypt messages for you.</li>
+        <li><strong>Secret Token hash</strong> — a one-way bcrypt hash of your secret token, used only to verify your identity at login. The original token is never stored.</li>
+        <li><strong>Login timestamps</strong> — the time of your last successful login, for security auditing.</li>
+        <li><strong>Failed login attempt counts</strong> — a rolling count used for rate-limiting; individual attempts are purged after 15 minutes.</li>
+      </ul>
+
+      <h2>3. Data We Do NOT Collect</h2>
+      <ul>
+        <li>Your private key — it is generated and stays in your browser only.</li>
+        <li>Message content — all messages are encrypted client-side and we never see plaintext.</li>
+        <li>Your name, email address, phone number, or any other personally identifying information.</li>
+        <li>IP addresses (beyond what the hosting infrastructure logs transiently).</li>
+      </ul>
+
+      <h2>4. How We Use Your Data</h2>
+      <p>We use the data listed in Section 2 exclusively to operate the Service: authenticating your login, enabling others to send you encrypted messages, and preventing brute-force attacks.</p>
+
+      <h2>5. Data Sharing</h2>
+      <p>We do not sell, rent, or share your data with third parties for marketing purposes. Your public key is accessible to other logged-in users of the Service so they can encrypt messages addressed to you — this is necessary for the Service to function.</p>
+      <p>We use the following sub-processors:</p>
+      <ul>
+        <li><strong>Supabase</strong> (database hosting) — Singapore region. See <a href="https://supabase.com/privacy" target="_blank" rel="noopener">supabase.com/privacy</a>.</li>
+        <li><strong>Vercel</strong> (static hosting and CDN). See <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener">vercel.com/legal/privacy-policy</a>.</li>
+      </ul>
+
+      <h2>6. Data Retention</h2>
+      <p>Your data is retained until you delete your account. Upon deletion, your public key and token hash are overwritten and all login attempt records are purged. Supabase backups may retain your data for up to 30 days after deletion.</p>
+
+      <h2>7. Your Rights (GDPR / CCPA)</h2>
+      <p>Regardless of your location, you have the right to:</p>
+      <ul>
+        <li><strong>Access</strong> — request a copy of the data we hold about you.</li>
+        <li><strong>Deletion</strong> — delete your account and all associated data at any time from the Account tab.</li>
+        <li><strong>Portability</strong> — your data is minimal and can be exported on request.</li>
+        <li><strong>Correction</strong> — contact us to correct inaccurate data.</li>
+      </ul>
+      <p>To exercise any right or to contact us about privacy concerns, email: <strong>[YOUR_EMAIL@DOMAIN.COM]</strong></p>
+
+      <h2>8. Security</h2>
+      <p>We employ industry-standard security practices including bcrypt password hashing (cost factor 10), TLS in transit, Row Level Security on all database tables, and the principle of least privilege for database access. However, no system is 100% secure. We recommend downloading your private key backup and storing it offline.</p>
+
+      <h2>9. Children</h2>
+      <p>The Service is not directed at children under 13 (or 16 in the EU). We do not knowingly collect data from minors. If you believe a minor has created an account, contact us for deletion.</p>
+
+      <h2>10. Changes to This Policy</h2>
+      <p>We may update this policy. Material changes will be announced by updating the "Last updated" date above. Continued use of the Service after changes constitutes acceptance.</p>
+
+      <h2>11. Contact</h2>
+      <p>For privacy inquiries: <strong>[YOUR_EMAIL@DOMAIN.COM]</strong></p>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="container footer-inner">
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="/terms.html">Terms of Service</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
