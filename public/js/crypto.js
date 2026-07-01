@@ -1,19 +1,22 @@
-// Crypto module — libsodium wrapper + BIP39 encoding
-// All operations are async (sodium must be ready before use)
+// Crypto module — native WebCrypto (SubtleCrypto) + BIP39 word encoding
+// Zero external dependencies: uses built-in browser crypto.subtle
+//
+// Sealed-box scheme: ECDH (P-256) + AES-256-GCM (anonymous sender)
+//   Ciphertext layout: [ephemeralPubKey(65)] [iv(12)] [aes-gcm-ciphertext+tag]
 
 const Crypto = (() => {
+  const subtle = crypto.subtle;
+  const ECDH   = { name: 'ECDH', namedCurve: 'P-256' };
+  const AES    = { name: 'AES-GCM', length: 256 };
+  const ENC    = new TextEncoder();
+  const DEC    = new TextDecoder();
 
-  // ── BIP39 encoding ──────────────────────────────────────────
+  // ── BIP39 encoding ─────────────────────────────────────────────
 
   function bytesToWords(bytes) {
-    // Convert Uint8Array → array of 11-bit indices → BIP39 words
     const bits = [];
-    for (const byte of bytes) {
-      for (let i = 7; i >= 0; i--) {
-        bits.push((byte >> i) & 1);
-      }
-    }
-    // Pad to next multiple of 11
+    for (const b of bytes)
+      for (let i = 7; i >= 0; i--) bits.push((b >> i) & 1);
     while (bits.length % 11 !== 0) bits.push(0);
 
     const words = [];
@@ -27,105 +30,131 @@ const Crypto = (() => {
 
   function wordsToBytes(wordString) {
     const words = wordString.trim().toLowerCase().split(/\s+/).filter(Boolean);
-    const bits = [];
-    for (const word of words) {
-      const idx = BIP39_WORDLIST.indexOf(word);
-      if (idx === -1) throw new Error(`Unknown BIP39 word: "${word}"`);
+    const bits  = [];
+    for (const w of words) {
+      const idx = BIP39_WORDLIST.indexOf(w);
+      if (idx === -1) throw new Error(`Unknown word: "${w}"`);
       for (let i = 10; i >= 0; i--) bits.push((idx >> i) & 1);
     }
-    // Convert bits → bytes (truncate trailing padding bits)
     const byteCount = Math.floor(bits.length / 8);
-    const result = new Uint8Array(byteCount);
+    const out = new Uint8Array(byteCount);
     for (let i = 0; i < byteCount; i++) {
       let b = 0;
       for (let j = 0; j < 8; j++) b = (b << 1) | bits[i * 8 + j];
-      result[i] = b;
+      out[i] = b;
     }
-    return result;
+    return out;
   }
 
-  // ── Key generation ───────────────────────────────────────────
+  // ── Key helpers ────────────────────────────────────────────────
 
   async function generateKeyPair() {
-    await sodium.ready;
-    const kp = sodium.crypto_box_keypair();
+    const kp  = await subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveKey']);
+    const pub  = await subtle.exportKey('jwk', kp.publicKey);
+    const priv = await subtle.exportKey('jwk', kp.privateKey);
+    // Store as base64-encoded JSON strings
     return {
-      publicKey:  sodium.to_base64(kp.publicKey,  sodium.base64_variants.ORIGINAL),
-      privateKey: sodium.to_base64(kp.privateKey, sodium.base64_variants.ORIGINAL),
+      publicKey:  btoa(JSON.stringify(pub)),
+      privateKey: btoa(JSON.stringify(priv)),
     };
   }
 
-  // Generate a secret token (12 BIP39 words from 16 random bytes)
-  async function generateSecretToken() {
-    await sodium.ready;
-    const bytes = sodium.randombytes_buf(16); // 128 bits
-    const words = bytesToWords(bytes);        // ~12 words
-    return { words, raw: sodium.to_base64(bytes, sodium.base64_variants.ORIGINAL) };
+  async function _importPub(b64) {
+    return subtle.importKey('jwk', JSON.parse(atob(b64)), ECDH, false, []);
+  }
+  async function _importPriv(b64) {
+    return subtle.importKey('jwk', JSON.parse(atob(b64)), ECDH, false, ['deriveKey']);
   }
 
-  // ── Encryption (crypto_box_seal — anonymous sender) ──────────
+  // ── Secret token (12 random BIP39 words = 128 bits of entropy) ─
+
+  async function generateSecretToken() {
+    const bytes = crypto.getRandomValues(new Uint8Array(16)); // 128 bits
+    const words = bytesToWords(bytes);
+    return { words, raw: btoa(String.fromCharCode(...bytes)) };
+  }
+
+  // ── Encryption ─────────────────────────────────────────────────
+  // Sealed-box: generate ephemeral keypair, ECDH → AES-256-GCM encrypt
 
   async function encryptMessage(recipientPublicKeyB64, recipientUserId, messageText) {
-    await sodium.ready;
+    const recipientPK = await _importPub(recipientPublicKeyB64);
 
-    const recipientPK = sodium.from_base64(
-      recipientPublicKeyB64, sodium.base64_variants.ORIGINAL
+    const ephemeral = await subtle.generateKey(
+      { name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveKey']
     );
 
-    // Embed recipient ID as a header so we can verify on decode
-    const payload = `${recipientUserId}::${messageText}`;
-    const msgBytes = sodium.from_string(payload);
+    const sharedKey = await subtle.deriveKey(
+      { name: 'ECDH', public: recipientPK },
+      ephemeral.privateKey,
+      AES, false, ['encrypt']
+    );
 
-    // crypto_box_seal: only recipient's private key can open this
-    const ciphertext = sodium.crypto_box_seal(msgBytes, recipientPK);
+    const ephPubRaw = new Uint8Array(
+      await subtle.exportKey('raw', ephemeral.publicKey)  // 65 bytes
+    );
+    const iv = crypto.getRandomValues(new Uint8Array(12));
 
-    return bytesToWords(ciphertext);
+    const payload   = `${recipientUserId}::${messageText}`;
+    const encrypted = new Uint8Array(
+      await subtle.encrypt({ name: 'AES-GCM', iv }, sharedKey, ENC.encode(payload))
+    );
+
+    // Pack: ephPubRaw(65) | iv(12) | ciphertext+tag
+    const out = new Uint8Array(65 + 12 + encrypted.length);
+    out.set(ephPubRaw,  0);
+    out.set(iv,         65);
+    out.set(encrypted,  77);
+
+    return bytesToWords(out);
   }
 
-  // ── Decryption ───────────────────────────────────────────────
+  // ── Decryption ──────────────────────────────────────────────────
 
   async function decryptMessage(wordString, myPublicKeyB64, myPrivateKeyB64, myUserId) {
-    await sodium.ready;
+    let packed;
+    try { packed = wordsToBytes(wordString); }
+    catch { throw new Error('invalid_words'); }
 
-    let ciphertext;
+    if (packed.length < 77 + 16) throw new Error('decrypt_failed');
+
+    const ephPubRaw  = packed.slice(0, 65);
+    const iv         = packed.slice(65, 77);
+    const ciphertext = packed.slice(77);
+
+    const ephPK  = await subtle.importKey('raw', ephPubRaw, ECDH, false, []);
+    const myPriv = await _importPriv(myPrivateKeyB64);
+
+    const sharedKey = await subtle.deriveKey(
+      { name: 'ECDH', public: ephPK },
+      myPriv,
+      AES, false, ['decrypt']
+    );
+
+    let plainBytes;
     try {
-      ciphertext = wordsToBytes(wordString);
-    } catch (e) {
-      throw new Error('invalid_words');
-    }
-
-    const myPK = sodium.from_base64(myPublicKeyB64,  sodium.base64_variants.ORIGINAL);
-    const mySK = sodium.from_base64(myPrivateKeyB64, sodium.base64_variants.ORIGINAL);
-
-    let decrypted;
-    try {
-      decrypted = sodium.crypto_box_seal_open(ciphertext, myPK, mySK);
+      plainBytes = await subtle.decrypt({ name: 'AES-GCM', iv }, sharedKey, ciphertext);
     } catch {
       throw new Error('decrypt_failed');
     }
 
-    if (!decrypted) throw new Error('decrypt_failed');
+    const payload = DEC.decode(plainBytes);
+    const sep     = payload.indexOf('::');
+    if (sep === -1) throw new Error('decrypt_failed');
 
-    const payload = sodium.to_string(decrypted);
-    const sepIdx  = payload.indexOf('::');
-    if (sepIdx === -1) throw new Error('decrypt_failed');
+    const embeddedRecipient = payload.substring(0, sep);
+    const messageText       = payload.substring(sep + 2);
 
-    const embeddedRecipient = payload.substring(0, sepIdx);
-    const messageText       = payload.substring(sepIdx + 2);
-
-    if (embeddedRecipient !== String(myUserId)) {
-      throw new Error('not_for_you');
-    }
-
+    if (embeddedRecipient !== String(myUserId)) throw new Error('not_for_you');
     return messageText;
   }
 
-  // ── Key file helpers ─────────────────────────────────────────
+  // ── Key file helpers ────────────────────────────────────────────
 
-  function buildKeyFileContent(userId, publicKeyB64, privateKeyB64) {
-    return [
+  function downloadKeyFile(userId, publicKeyB64, privateKeyB64) {
+    const content = [
       '=== Secret Word Cipher — Private Key File ===',
-      'Keep this file secret and safe. Anyone with this file can decrypt your messages.',
+      'Keep this file secret. Anyone with it can decrypt your messages.',
       '',
       `User ID:     ${userId}`,
       `Public Key:  ${publicKeyB64}`,
@@ -134,15 +163,10 @@ const Crypto = (() => {
       `Exported: ${new Date().toISOString()}`,
       '==============================================',
     ].join('\n');
-  }
 
-  function downloadKeyFile(userId, publicKeyB64, privateKeyB64) {
-    const content = buildKeyFileContent(userId, publicKeyB64, privateKeyB64);
-    const blob    = new Blob([content], { type: 'text/plain' });
-    const url     = URL.createObjectURL(blob);
-    const a       = document.createElement('a');
-    a.href        = url;
-    a.download    = `swc-key-${userId}.txt`;
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url  = URL.createObjectURL(blob);
+    const a    = Object.assign(document.createElement('a'), { href: url, download: `swc-key-${userId}.txt` });
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -151,15 +175,14 @@ const Crypto = (() => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = e => {
-        const text = e.target.result;
+        const text       = e.target.result;
         const userId     = (text.match(/^User ID:\s+(.+)$/m)     || [])[1]?.trim();
         const publicKey  = (text.match(/^Public Key:\s+(.+)$/m)  || [])[1]?.trim();
         const privateKey = (text.match(/^Private Key:\s+(.+)$/m) || [])[1]?.trim();
-        if (!userId || !publicKey || !privateKey) {
+        if (!userId || !publicKey || !privateKey)
           reject(new Error('Invalid key file format.'));
-        } else {
+        else
           resolve({ userId, publicKey, privateKey });
-        }
       };
       reader.onerror = () => reject(new Error('Could not read file.'));
       reader.readAsText(file);
@@ -167,13 +190,9 @@ const Crypto = (() => {
   }
 
   return {
-    bytesToWords,
-    wordsToBytes,
-    generateKeyPair,
-    generateSecretToken,
-    encryptMessage,
-    decryptMessage,
-    downloadKeyFile,
-    parseKeyFile,
+    bytesToWords, wordsToBytes,
+    generateKeyPair, generateSecretToken,
+    encryptMessage, decryptMessage,
+    downloadKeyFile, parseKeyFile,
   };
 })();
