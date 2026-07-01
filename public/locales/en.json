@@ -33,6 +33,7 @@
   "signup_copy_token": "Copy Token",
   "signup_download_key": "Download Private Key File",
   "signup_key_hint": "Keep this file safe. You will need it to decrypt messages if you clear your browser data.",
+  "signup_create_btn": "Generate My Keys & Create Account",
   "signup_creating": "Creating account…",
   "signup_complete": "Account Created!",
   "signup_go_app": "Go to App →",

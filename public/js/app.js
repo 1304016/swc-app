@@ -86,7 +86,7 @@
 
     document.getElementById('btn-start-signup')?.addEventListener('click', async () => {
       setStatus('signup-status', '', '');
-      setLoading('signup-section-generate', true);
+      setLoading('btn-start-signup', true, i18n.t('signup_creating'));
       document.getElementById('signup-step1').classList.add('hidden');
 
       try {
@@ -100,7 +100,7 @@
         document.getElementById('signup-step1').classList.remove('hidden');
         setStatus('signup-status', 'error', err.message || i18n.t('error_generic'));
       } finally {
-        setLoading('signup-section-generate', false);
+        setLoading('btn-start-signup', false);
       }
     });
 

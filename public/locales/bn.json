@@ -33,6 +33,7 @@
   "signup_copy_token": "Token কপি করুন",
   "signup_download_key": "Private Key ফাইল ডাউনলোড করুন",
   "signup_key_hint": "এই ফাইলটি নিরাপদে রাখুন। ব্রাউজার ডেটা মুছে গেলে মেসেজ ডিক্রিপ্টে লাগবে।",
+  "signup_create_btn": "Key তৈরি করুন ও অ্যাকাউন্ট খুলুন",
   "signup_creating": "অ্যাকাউন্ট তৈরি হচ্ছে…",
   "signup_complete": "অ্যাকাউন্ট তৈরি হয়েছে!",
   "signup_go_app": "অ্যাপে যান →",
