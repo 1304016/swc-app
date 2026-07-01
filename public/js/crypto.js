@@ -131,11 +131,17 @@ const Crypto = (() => {
       AES, false, ['decrypt']
     );
 
+    // BIP39 round-trip may add 1 trailing zero byte when (N*8) mod 11 ∈ {1,2,3}.
+    // extra_bytes is always 0 or 1, so two attempts are sufficient.
     let plainBytes;
     try {
       plainBytes = await subtle.decrypt({ name: 'AES-GCM', iv }, sharedKey, ciphertext);
     } catch {
-      throw new Error('decrypt_failed');
+      try {
+        plainBytes = await subtle.decrypt({ name: 'AES-GCM', iv }, sharedKey, ciphertext.slice(0, -1));
+      } catch {
+        throw new Error('decrypt_failed');
+      }
     }
 
     const payload = DEC.decode(plainBytes);
